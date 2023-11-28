@@ -1,0 +1,69 @@
+AMAZENAR DADOS
+TRATAMENDO DE DADOS
+OPERAÇÕES DE DADOS
+
+Tipos de dados e Variaveis 
+ 
+ window.alert()
+ window.confirm()
+ window.prompt()
+
+ //Comentários nos codigos para permanecer bem documentado**
+ // = uma unica linha
+ /*     */ = comentário de mais de uma linha
+
+ Conceitos de Variaveis
+
+ = -> Recebe
+  vaga a1 = carro1
+       a1 = carro2
+       a1 = null
+
+       Var n1 = 5    var s1= "JavaScript"
+       Var n2 = 8.5  var s2= 'Curso em Video'
+       Var n3 = 15   var s3 = `Guanabara`
+
+       Identificadores
+
+       Podem começar com letra, $ ou _
+       Não podem começar com numeros
+       É possivel usar letras ou numeros
+       É possivel usar acentos e numeros
+       Não podem conter espaços
+       Não podem ser palavras reservadas
+
+       Abrir node JS
+       
+
+       Dicas 
+       
+       Maiusculas e minusculas fazem diferença
+       Tente escolher nomes coerentes para as variáveis
+       evite se tornar um 'progrmador alfabeto' ou um 'programador contador'
+
+
+       5 18 -12 0.5 -15.9 3.14 8.0 = Variaveis 'number"
+      "Google" - 'JS' - `Maria` = string
+       true false = boolean
+
+       Data types 
+
+typeof 
+     number 
+        Infinity
+        NaN
+     string
+     boolean
+     null
+     undefined
+     object
+       Array
+     function
+
+Template String 
+     
+     'Eu estou aprendendo ${s}'
+     s.lenght // quanto caracteres aparece
+     s.toUpperCase() // tudo para Maiusculas
+     s.toLowerCase() // tudo para minusculas
+
