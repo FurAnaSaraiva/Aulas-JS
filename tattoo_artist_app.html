@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agenda Tatuador</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #2d1b69 0%, #11998e 100%);
+            background-attachment: fixed;
+            font-family: 'Arial', sans-serif;
+        }
+        .glass {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .nav-item {
+            transition: all 0.3s ease;
+        }
+        .nav-item:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: scale(1.05);
+        }
+        .calendar-day {
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        .calendar-day:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        .appointment {
+            background: rgba(30, 144, 255, 0.8);
+            border: 2px solid rgba(255, 255, 255, 0.5);
+        }
+        .sidebar {
+            z-index: 10;
+        }
+    </style>
+</head>
+<body class="text-white min-h-screen">
+    <!-- Sidebar Menu -->
+    <div id="sidebar" class="sidebar fixed left-0 top-0 h-full w-64 glass p-6 transform -translate-x-full transition-transform duration-300 ease-in-out md:translate-x-0">
+        <div class="mb-8">
+            <h2 class="text-2xl font-bold flex items-center">
+                <i class="fas fa-palette mr-2"></i> Agenda Tatuador
+            </h2>
+        </div>
+        <nav class="space-y-4">
+            <a href="#" class="nav-item block px-4 py-3 rounded-lg flex items-center" onclick="showSection('dashboard')">
+                <i class="fas fa-tachometer-alt mr-3"></i> Dashboard
+            </a>
+            <a href="#" class="nav-item block px-4 py-3 rounded-lg flex items-center" onclick="showSection('calendar')">
+                <i class="fas fa-calendar-alt mr-3"></i> Calendário
+            </a>
+            <a href="#" class="nav-item block px-4 py-3 rounded-lg flex items-center" onclick="showSection('clients')">
+                <i class="fas fa-users mr-3"></i> Clientes
+            </a>
+            <a href="#" class="nav-item block px-4 py-3 rounded-lg flex items-center" onclick="showSection('gallery')">
+                <i class="fas fa-images mr-3"></i> Galeria
+            </a>
+            <a href="#" class="nav-item block px-4 py-3 rounded-lg flex items-center" onclick="showSection('schedule')">
+                <i class="fas fa-clock mr-3"></i> Agendamento
+            </a>
+        </nav>
+    </div>
+
+    <!-- Main Content -->
+    <div class="md:ml-64 transition-all duration-300">
+        <!-- Header -->
+        <header class="glass p-6 flex justify-between items-center">
+            <button class="md:hidden" onclick="toggleSidebar()">
+                <i class="fas fa-bars text-2xl"></i>
+            </button>
+            <h1 id="page-title" class="text-3xl font-bold">Dashboard</h1>
+            <div class="flex items-center space-x-4">
+                <span class="text-sm">Bem-vindo, Tatuador!</span>
+                <i class="fas fa-user-circle text-3xl"></i>
+            </div>
+        </header>
+
+        <!-- Content Sections -->
+        <main class="p-6">
+
+            <!-- Dashboard -->
+            <section id="dashboard-section" class="section content-section">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="glass p-6 rounded-lg">
+                        <h3 class="text-xl font-semibold mb-4 flex items-center">
+                            <i class="fas fa-calendar-check mr-2"></i> Agendamentos Hoje
+                        </h3>
+                        <p id="today-appointments" class="text-3xl font-bold">3</p>
+                    </div>
+                    <div class="glass p-6 rounded-lg">
+                        <h3 class="text-xl font-semibold mb-4 flex items-center">
+                            <i class="fas fa-users mr-2"></i> Total de Clientes
+                        </h3>
+                        <p id="total-clients" class="text-3xl font-bold">25</p>
+                    </div>
+                    <div class="glass p-6 rounded-lg">
+                        <h3 class="text-xl font-semibold mb-4 flex items-center">
+                            <i class="fas fa-image mr-2"></i> Imagens Armazenadas
+                        </h3>
+                        <p id="total-images" class="text-3xl font-bold">0</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Calendar -->
+            <section id="calendar-section" class="section content-section hidden">
+                <div class="bg-white bg-opacity-10 p-6 rounded-lg">
+                    <h2 class="text-2xl font-bold mb-6">Calendário de Agendamentos</h2>
+                    <div class="grid grid-cols-7 gap-2 mb-4">
+                        <div class="text-center font-semibold">Dom</div>
+                        <div class="text-center font-semibold">Seg</div>
+                        <div class="text-center font-semibold">Ter</div>
+                        <div class="text-center font-semibold">Qua</div>
+                        <div class="text-center font-semibold">Qui</div>
+                        <div class="text-center font-semibold">Sex</div>
+                        <div class="text-center font-semibold">Sáb</div>
+                    </div>
+                    <div id="calendar-grid" class="grid grid-cols-7 gap-2">
+                        <!-- Calendar days will be generated by JS -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Clients -->
+            <section id="clients-section" class="section content-section hidden">
+                <div class="bg-white bg-opacity-10 p-6 rounded-lg">
+                    <h2 class="text-2xl font-bold mb-6">Lista de Clientes</h2>
+                    <div class="space-y-4" id="clients-list">
+                        <!-- Client items will be generated by JS -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Gallery -->
+            <section id="gallery-section" class="section content-section hidden">
+                <div class="bg-white bg-opacity-10 p-6 rounded-lg">
+                    <h2 class="text-2xl font-bold mb-6">Galeria de Tatuagens</h2>
+                    <div class="mb-6">
+                        <label class="block mb-2 font-semibold">Upload de imagem da tatuagem desejada:</label>
+                        <input type="file" id="image-upload" accept="image/*" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                    </div>
+                    <div id="image-gallery" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <!-- Images will be displayed here -->
+                        <div class="glass p-4 rounded-lg">
+                            <img src="https://placehold.co/300x300" alt="Detailed image of a small butterfly tattoo on the wrist with intricate wings, black ink, minimalist style, floral background" class="w-full h-48 object-cover rounded">
+                            <p class="mt-2 text-sm">Cliente: João Silva</p>
+                        </div>
+                        <div class="glass p-4 rounded-lg">
+                            <img src="https://placehold.co/300x300" alt="Vibrant rose tattoo design on the shoulder, red and green colors, thorn details, realistic shading, gothic aesthetic" class="w-full h-48 object-cover rounded">
+                            <p class="mt-2 text-sm">Cliente: Maria Santos</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Schedule -->
+            <section id="schedule-section" class="section content-section hidden">
+                <div class="bg-white bg-opacity-10 p-6 rounded-lg">
+                    <h2 class="text-2xl font-bold mb-6">Novo Agendamento</h2>
+                    <form id="appointment-form" class="space-y-4">
+                        <div>
+                            <label class="block mb-2 font-semibold">Nome do Cliente:</label>
+                            <input type="text" id="client-name" class="w-full p-3 rounded-lg bg-white bg-opacity-20 border border-white border-opacity-30" placeholder="Digite o nome do cliente">
+                        </div>
+                        <div>
+                            <label class="block mb-2 font-semibold">Data:</label>
+                            <input type="date" id="appointment-date" class="w-full p-3 rounded-lg bg-white bg-opacity-20 border border-white border-opacity-30">
+                        </div>
+                        <div>
+                            <label class="block mb-2 font-semibold">Horário:</label>
+                            <input type="time" id="appointment-time" class="w-full p-3 rounded-lg bg-white bg-opacity-20 border border-white border-opacity-30">
+                        </div>
+                        <div>
+                            <label class="block mb-2 font-semibold">Descrição:</label>
+                            <textarea id="appointment-description" class="w-full p-3 rounded-lg bg-white bg-opacity-20 border border-white border-opacity-30" rows="4" placeholder="Descreva a tatuagem ou agendamento"></textarea>
+                        </div>
+                        <button type="submit" class="w-full py-3 px-6 rounded-lg bg-blue-500 hover:bg-blue-600 transition-colors duration-200">
+                            <i class="fas fa-plus mr-2"></i> Agendar
+                        </button>
+                    </form>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <script>
+        const sections = ['dashboard', 'calendar', 'clients', 'gallery', 'schedule'];
+
+        function showSection(sectionName) {
+            sections.forEach(section => {
+                document.getElementById(section + '-section').classList.add('hidden');
+            });
+            document.getElementById(sectionName + '-section').classList.remove('hidden');
+            document.getElementById('page-title').textContent = sectionName.charAt(0).toUpperCase() + sectionName.slice(1);
+            toggleSidebar();
+        }
+
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('-translate-x-full');
+        }
+
+        // Calendar Generation
+        function generateCalendar() {
+            const today = new Date();
+            const currentMonth = today.getMonth();
+            const currentYear = today.getFullYear();
+            const firstDay = new Date(currentYear, currentMonth, 1);
+            const lastDay = new Date(currentYear, currentMonth + 1, 0);
+            const calendarGrid = document.getElementById('calendar-grid');
+
+            calendarGrid.innerHTML = '';
+
+            for (let i = 0; i < firstDay.getDay(); i++) {
+                calendarGrid.innerHTML += '<div class="p-2"></div>';
+            }
+
+            for (let day = 1; day <= lastDay.getDate(); day++) {
+                const date = new Date(currentYear, currentMonth, day);
+                const dayClasses = date.toDateString() === today.toDateString()
+                    ? 'calendar-day p-3 rounded-lg bg-blue-500 bg-opacity-50'
+                    : 'calendar-day p-3 rounded-lg';
+
+                calendarGrid.innerHTML += `
+                    <div class="${dayClasses}" onclick="selectDate('${date.toISOString().split('T')[0]}')">
+                        ${day}
+                        ${Math.random() > 0.7 ? '<div class="appointment mt-1 text-xs">Sessão</div>' : ''}
+                    </div>
+                `;
+            }
+        }
+
+        function selectDate(date) {
+            alert('Data selecionada: ' + date);
+        }
+
+        // Clients List (Sample Data)
+        function loadClients() {
+            const clientsList = document.getElementById('clients-list');
+            clientsList.innerHTML = `
+                <div class="glass p-4 rounded-lg flex justify-between items-center">
+                    <div>
+                        <h3 class="font-semibold">João Silva</h3>
+                        <p class="text-sm text-white text-opacity-80">Proxima sessão: 15/04/2024</p>
+                    </div>
+                    <button class="px-3 py-1 rounded bg-green-500 hover:bg-green-600 transition-colors">
+                        <i class="fas fa-eye"></i> Ver
+                    </button>
+                </div>
+                <div class="glass p-4 rounded-lg flex justify-between items-center">
+                    <div>
+                        <h3 class="font-semibold">Maria Santos</h3>
+                        <p class="text-sm text-white text-opacity-80">Proxima sessão: 18/04/2024</p>
+                    </div>
+                    <button class="px-3 py-1 rounded bg-green-500 hover:bg-green-600 transition-colors">
+                        <i class="fas fa-eye"></i> Ver
+                    </button>
+                </div>
+            `;
+        }
+
+        // Image Upload Functionality
+        document.getElementById('image-upload').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    // Use placeholder for demo instead of base64
+                    const imageContainer = document.createElement('div');
+                    imageContainer.className = 'glass p-4 rounded-lg';
+                    imageContainer.innerHTML = `
+                        <img src="https://placehold.co/300x300" alt="Uploaded tattoo design image showing a custom client-requested tattoo with black ink skull pattern, glowing red eyes, and gothic elements on a shadowy background" class="w-full h-48 object-cover rounded mb-2">
+                        <p class="text-sm">Nova imagem carregada</p>
+                    `;
+                    document.getElementById('image-gallery').appendChild(imageContainer);
+                    document.getElementById('total-images').textContent = parseInt(document.getElementById('total-images').textContent) + 1;
+                };
+                reader.readAsDataURL(file);  // Note: This creates base64, but used for demo; in real app, upload to server
+            }
+        });
+
+        // Appointment Form Submission
+        document.getElementById('appointment-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const name = document.getElementById('client-name').value;
+            const date = document.getElementById('appointment-date').value;
+            const time = document.getElementById('appointment-time').value;
+            const description = document.getElementById('appointment-description').value;
+
+            if (name && date && time) {
+                alert(`Agendamento criado para ${name} em ${date} às ${time}`);
+                // In a real app, save to database
+                document.getElementById('today-appointments').textContent = parseInt(document.getElementById('today-appointments').textContent) + 1;
+                this.reset();
+            } else {
+                alert('Por favor, preencha todos os campos obrigatórios.');
+            }
+        });
+
+        // Initialize
+        generateCalendar();
+        loadClients();
+        showSection('dashboard');
+    </script>
+</body>
+</html>
+</content>
+</create_file>
