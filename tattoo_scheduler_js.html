@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Agendamento para Tatuador - JavaScript Edition</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .dramatic-bg {
+            background-image: 
+                radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.3) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(120, 255, 198, 0.3) 0%, transparent 50%);
+        }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+        }
+        .floating-animation {
+            animation: float 3s ease-in-out infinite;
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+        .pulse-animation {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .calendar-day {
+            transition: all 0.3s ease;
+        }
+        .calendar-day:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+        }
+        .calendar-day.selected {
+            background: rgba(255, 255, 255, 0.3);
+            border: 2px solid rgba(255, 255, 255, 0.5);
+        }
+        .appointment-card {
+            background: rgba(255, 107, 119, 0.8);
+            backdrop-filter: blur(10px);
+        }
+        .client-gallery {
+            background: rgba(54, 69, 79, 0.8);
+        }
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            transition: all 0.5s ease;
+        }
+        .hidden { display: none; }
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .stats-card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .stats-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        }
+    </style>
+</head>
+<body class="text-white min-h-screen overflow-x-hidden dramatic-bg">
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
+        <div class="text-center">
+            <div class="floating-animation">
+                <i class="fas fa-palette text-6xl text-pink-400 mb-4"></i>
+            </div>
+            <div class="pulse-animation">
+                <p class="text-xl">Carregando Sistema de Tatuagem...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification System -->
+    <div id="notification" class="notification hidden">
+        <div class="glass-panel p-4 rounded-lg max-w-sm">
+            <div class="flex items-center">
+                <i class="fas fa-check-circle text-green-400 mr-3"></i>
+                <span id="notification-message">Ação realizada com sucesso!</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <header class="glass-panel py-6 px-4 mb-8">
+        <div class="container mx-auto flex justify-between items-center">
+            <div class="flex items-center">
+                <i class="fas fa-palette text-3xl mr-3 text-pink-400"></i>
+                <h1 class="text-3xl font-bold bg-gradient-to-r from-pink-400 to-purple-500 bg-clip-text text-transparent">
+                    Studio TattooScheduler JS
+                </h1>
+            </div>
+            <div class="flex items-center space-x-4">
+                <span id="current-date" class="text-sm opacity-80"></span>
+                <div class="flex items-center space-x-2">
+                    <i class="fas fa-user-circle text-2xl"></i>
+                    <span class="text-sm">Tatuador Admin</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="container mx-auto px-4">
+        <!-- Navigation Tabs -->
+        <div class="flex flex-wrap justify-center mb-8">
+            <button id="tab-dashboard" class="nav-tab glass-panel px-6 py-3 mx-2 mb-2 rounded-full transition-all duration-300 active" onclick="changeTab('dashboard')">
+                <i class="fas fa-tachometer-alt mr-2"></i>Dashboard
+            </button>
+            <button id="tab-calendar" class="nav-tab glass-panel px-6 py-3 mx-2 mb-2 rounded-full transition-all duration-300" onclick="changeTab('calendar')">
+                <i class="fas fa-calendar-alt mr-2"></i>Calendário
+            </button>
+            <button id="tab-clients" class="nav-tab glass-panel px-6 py-3 mx-2 mb-2 rounded-full transition-all duration-300" onclick="changeTab('clients')">
+                <i class="fas fa-users mr-2"></i>Clientes
+            </button>
+            <button id="tab-gallery" class="nav-tab glass-panel px-6 py-3 mx-2 mb-2 rounded-full transition-all duration-300" onclick="changeTab('gallery')">
+                <i class="fas fa-images mr-2"></i>Galeria
+            </button>
+            <button id="tab-schedule" class="nav-tab glass-panel px-6 py-3 mx-2 mb-2 rounded-full transition-all duration-300" onclick="changeTab('schedule')">
+                <i class="fas fa-clock mr-2"></i>Agendar
+            </button>
+        </div>
+
+        <!-- Content Areas -->
+        <div id="content-dashboard" class="content-section">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div class="stats-card glass-panel p-6 text-center">
+                    <i class="fas fa-calendar-check text-4xl text-green-400 mb-4"></i>
+                    <h3 class="text-lg font-semibold mb-2">Agendamentos Hoje</h3>
+                    <p id="stats-today" class="text-3xl font-bold text-green-400">0</p>
+                </div>
+                <div class="stats-card glass-panel p-6 text-center">
+                    <i class="fas fa-calendar-week text-4xl text-blue-400 mb-4"></i>
+                    <h3 class="text-lg font-semibold mb-2">Esta Semana</h3>
+                    <p id="stats-week" class="text-3xl font-bold text-blue-400">0</p>
+                </div>
+                <div class="stats-card glass-panel p-6 text-center">
+                    <i class="fas fa-users text-4xl text-purple-400 mb-4"></i>
+                    <h3 class="text-lg font-semibold mb-2">Total Clientes</h3>
+                    <p id="stats-clients" class="text-3xl font-bold text-purple-400">0</p>
+                </div>
+                <div class="stats-card glass-panel p-6 text-center">
+                    <i class="fas fa-image text-4xl text-pink-400 mb-4"></i>
+                    <h3 class="text-lg font-semibold mb-2">Imagens Salvas</h3>
+                    <p id="stats-images" class="text-3xl font-bold text-pink-400">0</p>
+                </div>
+            </div>
+            <div class="glass-panel p-6">
+                <h2 class="text-2xl font-bold mb-4 flex items-center">
+                    <i class="fas fa-list text-pink-400 mr-2"></i>Próximos Agendamentos
+                </h2>
+                <div id="upcoming-appointments" class="space-y-2">
+                    <!-- Dynamically filled -->
+                </div>
+            </div>
+        </div>
+
+        <div id="content-calendar" class="content-section hidden">
+            <div class="glass-panel p-6 mb-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold flex items-center">
+                        <i class="fas fa-calendar-alt text-blue-400 mr-2"></i>Calendário de Agendamentos
+                    </h2>
+                    <div class="flex items-center space-x-2">
+                        <button onclick="previousMonth()" class="glass-panel p-2 rounded-full">
+                            <i class="fas fa-chevron-left"></i>
+                        </button>
+                        <span id="current-month-year" class="font-semibold"></span>
+                        <button onclick="nextMonth()" class="glass-panel p-2 rounded-full">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="grid grid-cols-7 gap-2 mb-4">
+                    <div class="text-center font-semibold text-pink-400">Dom</div>
+                    <div class="text-center font-semibold text-pink-400">Seg</div>
+                    <div class="text-center font-semibold text-pink-400">Ter</div>
+                    <div class="text-center font-semibold text-pink-400">Qua</div>
+                    <div class="text-center font-semibold text-pink-400">Qui</div>
+                    <div class="text-center font-semibold text-pink-400">Sex</div>
+                    <div class="text-center font-semibold text-pink-400">Sáb</div>
+                </div>
+                <div id="calendar-grid" class="grid grid-cols-7 gap-2">
+                    <!-- Calendar days filled by JS -->
+                </div>
+            </div>
+            <div id="appointment-list" class="glass-panel p-6">
+                <h3 class="text-xl font-semibold mb-4 flex items-center">
+                    <i class="fas fa-list-ul text-green-400 mr-2"></i>Agendamentos do Dia Selecionado
+                </h3>
+                <div id="selected-day-appointments">
+                    <!-- Appointments for selected day -->
+                </div>
+            </div>
+        </div>
+
+        <div id="content-clients" class="content-section hidden">
+            <div class="glass-panel p-6 mb-6">
+                <h2 class="text-2xl font-bold mb-4 flex items-center">
+                    <i class="fas fa-users text-purple-400 mr-2"></i>Gerenciamento de Clientes
+                </h2>
+                <button onclick="showClientForm()" class="glass-panel px-6 py-3 rounded-lg mb-4 hover:bg-white hover:bg-opacity-10 transition-colors">
+                    <i class="fas fa-plus mr-2"></i>Adicionar Novo Cliente
+                </button>
+                <div id="clients-list" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Clients filled by JS -->
+                </div>
+            </div>
+        </div>
+
+        <div id="content-gallery" class="content-section hidden">
+            <div class="glass-panel p-6 mb-6">
+                <h2 class="text-2xl font-bold mb-4 flex items-center">
+                    <i class="fas fa-images text-pink-400 mr-2"></i>Galeria de Designs e Referências
+                </h2>
+                <div class="mb-6">
+                    <label class="block mb-2 font-semibold">Upload de Novo Design:</label>
+                    <input type="file" id="image-upload" accept="image/*" class="block w-full text-sm bg-white bg-opacity-10 border border-white border-opacity-30 rounded-lg p-2 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:bg-pink-500 file:text-white">
+                </div>
+                <div id="image-gallery" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <!-- Images filled by JS -->
+                </div>
+            </div>
+        </div>
+
+        <div id="content-schedule" class="content-section hidden">
+            <div class="glass-panel p-6">
+                <h2 class="text-2xl font-bold mb-6 flex items-center">
+                    <i class="fas fa-clock text-blue-400 mr-2"></i>Agendar Nova Sessão
+                </h2>
+                <form id="schedule-form" class="space-y-4" onsubmit="scheduleAppointment(event)">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block mb-2 font-semibold">Nome do Cliente:</label>
+                            <input type="text" id="client-name" class="w-full p-3 rounded-lg bg-white bg-opacity-20 border border-white border-opacity-30 focus:border-pink-400 focus:outline-none" required>
+                        </div>
+                        <div>
+                            <label class="block mb-2 font-semibold">Contato:</label>
+                            <input type="tel" id="client-contact" class="w-full p-3 rounded-lg bg-white bg-opacity-20 border border-white border-opacity-30 focus:border-pink-400 focus:outline-none">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block mb-2 font-semibold">Data:</label>
+                            <input type="date" id="appointment-date" class="w-full p-3 rounded-lg bg-white bg-opacity-20 border border-white border-opacity-30 focus:border-pink-400 focus:outline-none" required>
+                        </div>
+                        <div>
+                            <label class="block mb-2 font-semibold">Horário:</label>
+                            <input type="time" id="appointment-time" class="w-full p-3 rounded-lg bg-white bg-opacity-20 border border-white border-opacity-30 focus:border-pink-400 focus:outline-none" required>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block mb-2 font-semibold">Descrição da Tatuagem:</label>
+                        <textarea id="appointment-description" class="w-full p-3 rounded-lg bg-white bg-opacity-20 border border-white border-opacity-30 focus:border-pink-400 focus:outline-none" rows="4" placeholder="Descreva o design, tamanho, localização, etc."></textarea>
+                    </div>
+                    <div>
+                        <label class="block mb-2 font-semibold">Valor Estimado (R$):</label>
+                        <input type="number" id="appointment-price" class="w-full p-3 rounded-lg bg-white bg-opacity-20 border border-white border-opacity-30 focus:border-pink-400 focus:outline-none" placeholder="0.00">
+                    </div>
+                    <button type="submit" class="w-full py-3 px-6 rounded-lg bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-semibold transition-all duration-300 transform hover:scale-105">
+                        <i class="fas fa-check mr-2"></i>Confirmar Agendamento
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Client Form Modal (Hidden by default) -->
+        <div id="client-form-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-40">
+            <div class="glass-panel p-6 w-full max-w-md mx-4">
+                <h3 class="text-xl font-bold mb-4">Adicionar Novo Cliente</h3>
+                <form id="client-form" onsubmit="addClient(event)">
+                    <div class="mb-4">
+                        <label class="block mb-2">Nome:</label>
+                        <input type="text" id="new-client-name" class="w-full p-2 rounded bg-white bg-opacity-20 border border-white border-opacity-30" required>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block mb-2">Email:</label>
+                        <input type="email" id="new-client-email" class="w-full p-2 rounded bg-white bg-opacity-20 border border-white border-opacity-30">
+                    </div>
+                    <div class="mb-4">
+                        <label class="block mb-2">Telefone:</label>
+                        <input type="tel" id="new-client-phone" class="w-full p-2 rounded bg-white bg-opacity-20 border border-white border-opacity-30">
+                    </div>
+                    <div class="flex justify-end space-x-2">
+                        <button type="button" onclick="hideClientForm()" class="px-4 py-2 rounded-lg bg-gray-500 hover:bg-gray-600">Cancelar</button>
+                        <button type="submit" class="px-4 py-2 rounded-lg bg-pink-500 hover:bg-pink-600">Adicionar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="glass-panel py-6 mt-8 text-center">
+        <p class="opacity-70">© 2024 Studio TattooScheduler JS - Sistema de Agendamento Completo</p>
+        <p class="opacity-50 text-sm mt-2">Feito com ❤️ em JavaScript puro</p>
+    </footer>
+
+    <script>
+        // Global Variables
+        let currentTab = 'dashboard';
+        let currentMonth = new Date().getMonth();
+        let currentYear = new Date().getFullYear();
+        let selectedDate = new Date().toISOString().split('T')[0];
+        let appointments = JSON.parse(localStorage.getItem('tattooAppointments')) || [];
+        let clients = JSON.parse(localStorage.getItem('tattooClients')) || [];
+        let images = JSON.parse(localStorage.getItem('tattooImages')) || [];
+
+        // Utility Functions
+        function showNotification(message) {
+            document.getElementById('notification-message').textContent = message;
+            document.getElementById('notification').classList.remove('hidden');
+            document.getElementById('notification').classList.add('fade-in');
+            setTimeout(() => {
+                document.getElementById('notification').classList.add('hidden');
+            }, 3000);
+        }
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('pt-BR');
+        }
+
+        function formatTime(timeString) {
+            return timeString;
+        }
+
+        function saveData() {
+            localStorage.setItem('tattooAppointments', JSON.stringify(appointments));
+            localStorage.setItem('tattooClients', JSON.stringify(clients));
+            localStorage.setItem('tattooImages', JSON.stringify(images));
+        }
+
+        function loadInitialData() {
+            // Simulate some initial data
+            if (appointments.length === 0) {
+                appointments = [
+                    {
+                        id: 1,
+                        clientName: 'João Silva',
+                        contact: '(11) 99999-0001',
+                        date: '2024-04-15',
+                        time: '14:00',
+                        description: 'Tatuagem de dragão nas costas',
+                        price: 800.00
+                    },
+                    {
+                        id: 2,
+                        clientName: 'Maria Santos',
+                        contact: '(11) 99999-0002',
+                        date: '2024-04-16',
+                        time: '10:00',
+                        description: 'Flor delicada no braço',
+                        price: 300.00
+                    }
+                ];
+            }
+            if (clients.length === 0) {
+                clients = [
+                    { id: 1, name: 'João Silva', email: 'joao@email.com', phone: '(11) 99999-0001' },
+                    { id: 2, name: 'Maria Santos', email: 'maria@email.com', phone: '(11) 99999-0002' }
+                ];
+            }
+            if (images.length === 0) {
+                images = [
+                    { id: 1, description: 'Dragão tribal', client: 'João Silva' },
+                    { id: 2, description: 'Rosa vermelha', client: 'Maria Santos' }
+                ];
+            }
+            saveData();
+        }
+
+        function updateStats() {
+            const today = new Date().toISOString().split('T')[0];
+            const todayAppointments = appointments.filter(app => app.date === today).length;
+            const thisWeek = appointments.filter(app => {
+                const appDate = new Date(app.date);
+                const now = new Date();
+                const weekStart = new Date(now.setDate(now.getDate() - now.getDay()));
+                const weekEnd = new Date(weekStart);
+                weekEnd.setDate(weekStart.getDate() + 6);
+                return appDate >= weekStart && appDate <= weekEnd;
+            }).length;
+
+            document.getElementById('stats-today').textContent = todayAppointments;
+            document.getElementById('stats-week').textContent = thisWeek;
+            document.getElementById('stats-clients').textContent = clients.length;
+            document.getElementById('stats-images').textContent = images.length;
+        }
+
+        function updateUpcomingAppointments() {
+            const today = new Date();
+            const upcoming = appointments
+                .filter(app => new Date(app.date) >= today)
+                .sort((a, b) => new Date(a.date) - new Date(b.date))
+                .slice(0, 5);
+
+            const container = document.getElementById('upcoming-appointments');
+            container.innerHTML = '';
+
+            if (upcoming.length === 0) {
+                container.innerHTML = '<p class="text-center opacity-70">Nenhum agendamento futuro encontrado.</p>';
+                return;
+            }
+
+            upcoming.forEach(app => {
+                const div = document.createElement('div');
+                div.className = 'flex justify-between items-center glass-panel p-4 hover:bg-white hover:bg-opacity-10 transition-colors';
+                div.innerHTML = `
+                    <div>
+                        <p class="font-semibold">${app.clientName}</p>
+                        <p class="text-sm opacity-70">${formatDate(app.date)} às ${formatTime(app.time)}</p>
+                        <p class="text-sm opacity-70">${app.description}</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="font-bold text-pink-400">R$ ${app.price.toFixed(2)}</p>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function changeTab(tabName) {
+            // Hide all content sections
+            const sections = document.querySelectorAll('.content-section');
+            sections.forEach(section => section.classList.add('hidden'));
+
+            // Remove active class from all tabs
+            const tabs = document.querySelectorAll('.nav-tab');
+            tabs.forEach(tab => tab.classList.remove('active'));
+
+            // Show selected content section
+            document.getElementById('content-' + tabName).classList.remove('hidden');
+
+            // Add active class to selected tab
+            document.getElementById('tab-' + tabName).classList.add('active');
+
+            currentTab = tabName;
+
+            // Update content based on tab
+            switch(tabName) {
+                case 'calendar':
+                    generateCalendar();
+                    break;
+                case 'clients':
+                    displayClients();
+                    break;
+                case 'gallery':
+                    displayImages();
+                    break;
+                default:
+                    updateStats();
+                    updateUpcomingAppointments();
+            }
+        }
+
+        function generateCalendar() {
+            const firstDay = new Date(currentYear, currentMonth, 1);
+            const lastDay = new Date(currentYear, currentMonth + 1, 0);
+            const grid = document.getElementById('calendar-grid');
+
+            // Update month/year display
+            document.getElementById('current-month-year').textContent = 
+                new Date(currentYear, currentMonth).toLocaleDateString('pt-BR', { 
+                    year: 'numeric', 
+                    month: 'long' 
+                });
+
+            grid.innerHTML = '';
+
+            // Empty cells for days before the first day of the month
+            for (let i = 0; i < firstDay.getDay(); i++) {
+                grid.innerHTML += '<div class="calendar-day p-3 rounded-lg opacity-50"></div>';
+            }
+
+            // Days of the month
+            for (let day = 1; day <= lastDay.getDate(); day++) {
+                const dateString = `${currentYear}-${(currentMonth + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+                const dayAppointments = appointments.filter(app => app.date === dateString);
+                const isToday = dateString === new Date().toISOString().split('T')[0];
+                const isSelected = dateString === selectedDate;
+
+                let classes = 'calendar-day p-3 rounded-lg flex items-center justify-center cursor-pointer';
+                if (isToday) classes += ' bg-pink-500 bg-opacity-50';
+                if (isSelected) classes += ' selected';
+                if (dayAppointments.length > 0) classes += ' appointment-card';
+
+                const content = dayAppointments.length > 0 
+                    ? `${day}<div class="text-xs mt-1">${dayAppointments.length} sess${dayAppointments.length > 1 ? 'ões' : 'ão'}</div>`
+                    : day;
+
+                grid.innerHTML += `<div class="${classes}" onclick="selectDay('${dateString}')">${content}</div>`;
+            }
+        }
+
+        function selectDay(dateString) {
+            selectedDate = dateString;
+            generateCalendar();
+            displayDayAppointments();
+        }
+
+        function displayDayAppointments() {
+            const dayAppointments = appointments.filter(app => app.date === selectedDate);
+            const container = document.getElementById('selected-day-appointments');
+
+            if (dayAppointments.length === 0) {
+                container.innerHTML = '<p class="text-center opacity-70">Nenhum agendamento para este dia.</p>';
+                return;
+            }
+
+            container.innerHTML = '';
+            dayAppointments.forEach(app => {
+                const div = document.createElement('div');
+                div.className = 'Appointment-card p-4 mb-2 rounded';
+                div.innerHTML = `
+                    <div class="flex justify-between">
+                        <div>
+                            <h4 class="font-bold">${app.clientName}</h4>
+                            <p class="text-sm">Horário: ${formatTime(app.time)}</p>
+                            <p class="text-sm">${app.description}</p>
+                            <p class="text-sm">Contato: ${app.contact}</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="font-bold text-green-400">R$ ${app.price.toFixed(2)}</p>
+                            <button onclick="deleteAppointment(${app.id})" class="mt-2 px-3 py-1 bg-red-500 rounded hover:bg-red-600 transition-colors">Excluir</button>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function scheduleAppointment(event) {
+            event.preventDefault();
+            
+            const appointment = {
+                id: Date.now(),
+                clientName: document.getElementById('client-name').value,
+                contact: document.getElementById('client-contact').value,
+                date: document.getElementById('appointment-date').value,
+                time: document.getElementById('appointment-time').value,
+                description: document.getElementById('appointment-description').value,
+                price: parseFloat(document.getElementById('appointment-price').value) || 0
+            };
+
+            appointments.push(appointment);
+            saveData();
+            updateStats();
+            updateUpcomingAppointments();
+            changeTab('dashboard');
+            showNotification('Agendamento criado com sucesso!');
+
+            // Reset form
+            event.target.reset();
+        }
+
+        function displayClients() {
+            const container = document.getElementById('clients-list');
+            container.innerHTML = '';
+
+            if (clients.length === 0) {
+                container.innerHTML = '<p class="text-center opacity-70 col-span-full">Nenhum cliente cadastrado.</p>';
+                return;
+            }
+
+            clients.forEach(client => {
+                const div = document.createElement('div');
+                div.className = 'client-gallery p-4 rounded';
+                div.innerHTML = `
+                    <div class="flex justify-between items-start mb-2">
+                        <h3 class="text-lg font-bold">${client.name}</h3>
+                        <button onclick="deleteClient(${client.id})" class="px-2 py-1 bg-red-500 rounded hover:bg-red-600 transition-colors">X</button>
+                    </div>
+                    <p class="text-sm opacity-70 mb-1"><i class="fas fa-envelope mr-1"></i>${client.email || 'Não informado'}</p>
+                    <p class="text-sm opacity-70"><i class="fas fa-phone mr-1"></i>${client.phone || 'Não informado'}</p>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function addClient(event) {
+            event.preventDefault();
+            
+            const client = {
+                id: Date.now(),
+                name: document.getElementById('new-client-name').value,
+                email: document.getElementById('new-client-email').value,
+                phone: document.getElementById('new-client-phone').value
+            };
+
+            clients.push(client);
+            saveData();
+            updateStats();
+            displayClients();
+            hideClientForm();
+            showNotification('Cliente adicionado com sucesso!');
+
+            // Reset form
+            event.target.reset();
+        }
+
+        function showClientForm() {
+            document.getElementById('client-form-modal').classList.remove('hidden');
+        }
+
+        function hideClientForm() {
+            document.getElementById('client-form-modal').classList.add('hidden');
+        }
+
+        function deleteClient(id) {
+            clients = clients.filter(client => client.id !== id);
+            saveData();
+            updateStats();
+            displayClients();
+            showNotification('Cliente removido com sucesso!');
+        }
+
+        function displayImages() {
+            const container = document.getElementById('image-gallery');
+            container.innerHTML = '';
+
+            images.forEach(image => {
+                const div = document.createElement('div');
+                div.className = 'client-gallery p-4 rounded';
+                div.innerHTML = `
+                    <img src="https://placehold.co/300x200" alt="Detailed tattoo design showing a ${image.description} with intricate patterns, vivid colors, and artistic elements in a professional tattoo style" class="w-full h-32 object-cover rounded mb-2">
+                    <p class="font-semibold">${image.description}</p>
+                    <p class="text-sm opacity-70">Cliente: ${image.client}</p>
+                    <button onclick="deleteImage(${image.id})" class="mt-2 px-2 py-1 bg-red-500 rounded hover:bg-red-600 transition-colors">Remover</button>
+                `;
+                container.appendChild(div);
+            });
+
+            if (images.length === 0) {
+                container.innerHTML = '<p class="text-center opacity-70 col-span-full">Nenhuma imagem na galeria.</p>';
+            }
+        }
+
+        function deleteAppointment(id) {
+            appointments = appointments.filter(app => app.id !== id);
+            saveData();
+            updateStats();
+            updateUpcomingAppointments();
+            generateCalendar();
+            displayDayAppointments();
+            showNotification('Agendamento removido!');
+        }
+
+        function deleteImage(id) {
+            images = images.filter(image => image.id !== id);
+            saveData();
+            updateStats();
+            displayImages();
+            showNotification('Imagem removida da galeria!');
+        }
+
+        function previousMonth() {
+            currentMonth--;
+            if (currentMonth < 0) {
+                currentMonth = 11;
+                currentYear--;
+            }
+            generateCalendar();
+        }
+
+        function nextMonth() {
+            currentMonth++;
+            if (currentMonth > 11) {
+                currentMonth = 0;
+                currentYear++;
+            }
+            generateCalendar();
+        }
+
+        // Image upload handling
+        document.getElementById('image-upload').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                // In a real app, upload to server. Here we simulate.
+                const newImage = {
+                    id: Date.now(),
+                    description: 'Nova imagem carregada',
+                    client: 'Cliente Genérico'
+                };
+                images.push(newImage);
+                saveData();
+                updateStats();
+                displayImages();
+                showNotification('Imagem adicionada à galeria!');
+            }
+        });
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadInitialData();
+            updateStats();
+            updateUpcomingAppointments();
+            document.getElementById('current-date').textContent = new Date().toLocaleDateString('pt-BR');
+
+            // Fade out loading overlay
+            setTimeout(() => {
+                document.getElementById('loading-overlay').style.opacity = '0';
+                setTimeout(() => {
+                    document.getElementById('loading-overlay').style.display = 'none';
+                }, 300);
+            }, 2000);
+        });
+    </script>
+</body>
+</html>
+</content>
+</create_file>
